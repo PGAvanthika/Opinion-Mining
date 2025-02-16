@@ -53,10 +53,6 @@ The dataset for this project was sourced from Kaggle. You can access it here:
 - Implement deep learning models (e.g., LSTMs) for better accuracy.
 - Add a web interface for user input and sentiment analysis visualization.
 - Expand dataset and fine-tune preprocessing for improved performance.
+  
 
-## Author
-Avanthika
-
-## License
-This project is open-source and available under the MIT License.
 
