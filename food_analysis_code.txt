@@ -1,0 +1,164 @@
+from collections import Counter
+import numpy as np
+import pandas as pd
+import pickle
+from nltk import pos_tag
+from nltk.tokenize import word_tokenize
+
+# Function to create vocabulary with POS tags
+def create_vocab_with_pos(df):
+    """Function to create vocabulary with POS tags from the review DataFrame."""
+    # Collect all words and their POS tags
+    all_words = []
+
+    for review in df['Text']:
+        tokens = word_tokenize(clean_text(review))  # Clean and tokenize the review
+        pos_tags = pos_tag(tokens)  # Get POS tags
+        all_words.extend([f"{word}_{pos}" for word, pos in pos_tags])  # Append word_POS to the list
+
+    # Create vocabulary from the words
+    word_counts = Counter(all_words)
+    vocab = {word: idx + 1 for idx, (word, _) in enumerate(word_counts.items())}  # Start indexing from 1
+    vocab["<UNK>"] = len(vocab) + 1  # Add <UNK> token
+
+    return vocab
+
+# Load your data
+df = pd.read_csv("/content/data/Reviewsfull.csv")  # Ensure your path is correct
+
+# Create vocabulary
+vocab2int = create_vocab_with_pos(df)
+
+# Save vocabulary to a pickle file
+with open("/content/data/vocab2int.pickle", "wb") as f:
+    pickle.dump(vocab2int, f)
+
+print("Vocabulary with POS tags saved.")
+
+
+
+
+
+# Necessary imports for text preprocessing and model building
+import numpy as np
+import tqdm
+import pandas as pd
+from string import punctuation
+from collections import Counter
+from sklearn.model_selection import train_test_split
+from keras.preprocessing.sequence import pad_sequences
+from keras.models import Sequential
+from keras.layers import Embedding, LSTM, Dense, Dropout, SpatialDropout1D
+import pickle
+import warnings
+import nltk
+from nltk import pos_tag
+from nltk.tokenize import word_tokenize
+
+# Download NLTK data
+nltk.download('punkt')
+nltk.download('averaged_perceptron_tagger')
+
+# Suppress all warnings
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    # Your evaluation code here
+
+# Define cleaning and tokenizing functions
+punc = set(punctuation)
+
+def clean_text(text):
+    """Function to clean the review text."""
+    return ''.join([c.lower() for c in text if c not in punc])
+
+def tokenize_words(words, vocab2int):
+    """Function to tokenize text using the vocab2int dictionary and include POS tagging."""
+    words = word_tokenize(words)  # Tokenize the words
+    tokenized_words = np.zeros((len(words),), dtype=np.int32)
+
+    for j in range(len(words)):
+        pos = pos_tag([words[j]])[0][1]
+        token = f"{words[j]}_{pos}"  # Append POS tag to the word
+        tokenized_words[j] = vocab2int.get(token, vocab2int["<UNK>"])  # Use <UNK> for out-of-vocab words
+
+    return tokenized_words
+
+# The rest of your code remains unchanged...
+
+# Define the function to load and preprocess the review data
+# Define the function to load and preprocess the review data
+def load_review_data(df):
+    X = np.zeros((len(df), 2), dtype=object)
+
+    # Clean and tokenize text
+    for i in tqdm.tqdm(range(len(df)), "Cleaning X"):
+        target = df['Text'].iloc[i]
+        X[i, 0] = clean_text(target)
+        X[i, 1] = df['Score'].iloc[i]
+
+    # Load vocab2int from pickle file
+    print("Loading vocab2int from pickle...")
+    vocab2int = pickle.load(open("/content/data/vocab2int.pickle", "rb"))
+
+    # Tokenize the reviews
+    for i in tqdm.tqdm(range(X.shape[0]), "Tokenizing words"):
+        X[i, 0] = tokenize_words(X[i, 0], vocab2int)
+
+    # Get length of reviews
+    lengths = [len(row) for row in X[:, 0]]
+    print("min_length:", min(lengths))
+    print("max_length:", max(lengths))
+
+    # Split data into training and test sets
+    X_train, X_test, y_train, y_test = train_test_split(X[:, 0], X[:, 1], test_size=0.2, shuffle=True, random_state=19)
+
+    # Padding sequences
+    sequence_length = 500  # Maximum length of sequences
+    X_train = pad_sequences(X_train, maxlen=sequence_length, padding='post')
+    X_test = pad_sequences(X_test, maxlen=sequence_length, padding='post')
+
+    # Convert targets to float32
+    y_train = np.array(y_train).astype(np.float32)
+    y_test = np.array(y_test).astype(np.float32)
+
+    return X_train, X_test, y_train, y_test, vocab2int
+
+
+
+# Model architecture
+def get_model(vocab_size, sequence_length, embedding_size):
+    model = Sequential()
+    model.add(Embedding(vocab_size + 2, embedding_size))  # +2 for <UNK> and padding
+    model.add(SpatialDropout1D(0.15))
+    model.add(LSTM(128, recurrent_dropout=0.2))
+    model.add(Dropout(0.3))
+    model.add(Dense(1, activation="linear"))
+    return model
+
+# Set hyperparameters
+embedding_size = 64
+batch_size = 64
+epochs = 15
+
+# Load and preprocess the data
+df = pd.read_csv("/content/data/Reviews.csv")  # Make sure your path is correct
+X_train, X_test, y_train, y_test, vocab2int = load_review_data(df)
+
+# Build and compile the model
+vocab_size = len(vocab2int)
+model = get_model(vocab_size, 500, embedding_size)  # 500 is the max length
+model.compile(loss="mse", optimizer="rmsprop", metrics=["accuracy"])
+
+# Train the model
+history = model.fit(X_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(X_test, y_test))
+
+# Function to evaluate a new review
+def evaluate_review(review):
+    review = tokenize_words(clean_text(review), vocab2int)
+    x = pad_sequences([review], maxlen=500)  # Ensure to use the same max length as training
+    prediction = model.predict(x)[0][0]
+    return f"{prediction:.2f}/5"
+
+# Test the model by evaluating a sample review
+sample_review = "This food is bad!"
+print(evaluate_review(sample_review))
