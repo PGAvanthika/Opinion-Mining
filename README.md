@@ -43,7 +43,7 @@ pip install pandas numpy scikit-learn nltk
 
 ## Dataset
 The dataset for this project was sourced from Kaggle. You can access it here:
-[Dataset Link](<INSERT_KAGGLE_DATASET_LINK_HERE>)
+[Dataset Link](<https://www.kaggle.com/datasets/snap/amazon-fine-food-reviews>)
 
 ## Notes
 - `food_analysis_code.txt` contains the core logic, which can be integrated into `main.py`.
