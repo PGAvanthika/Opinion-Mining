@@ -1,8 +1,8 @@
-# Opinion-Mining
+Description
+Topic: Opinion-Mining
 Developed an opinion mining system using the Amazon Food Reviews dataset to classify reviews as positive, negative, or neutral. Leveraged LSTM networks in TensorFlow and Python, with NLTK for text preprocessing, to achieve accurate sentiment classification. The model offers insights for better decisions and customer satisfaction.
 
 Opinion Mining Project
-
 Overview
 This project performs opinion mining (sentiment analysis) on textual data, analyzing sentiments in food-related reviews. It preprocesses the text, converts words to numerical representations, and applies machine learning techniques for classification.
 
